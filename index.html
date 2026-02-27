@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Renombrador Dual - Proyectos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .file-card { transition: all 0.2s ease; }
+        .file-card:hover { background-color: #f1f5f9; }
+        #fileList::-webkit-scrollbar { width: 8px; }
+        #fileList::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        #fileList::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        #fileList::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .tab-active {
+            border-bottom: 4px solid #4f46e5;
+            color: #4f46e5;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen p-4 md:p-8 font-sans">
+    <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+        <!-- Header -->
+        <div class="bg-indigo-700 p-8 text-white text-center">
+            <h1 class="text-3xl font-extrabold tracking-tight">Gestor de Nombres</h1>
+            <p class="text-indigo-100 mt-2 opacity-90 text-sm uppercase font-bold tracking-widest">Formato REG_CXXXX_2026</p>
+        </div>
+
+        <!-- Selector de Modo -->
+        <div class="flex border-b">
+            <button id="btnPrivate" onclick="setMode('private')" class="flex-1 py-4 font-bold text-slate-500 hover:bg-slate-50 transition-all tab-active uppercase tracking-wider">
+                Archivos Privados
+            </button>
+            <button id="btnPublic" onclick="setMode('public')" class="flex-1 py-4 font-bold text-slate-500 hover:bg-slate-50 transition-all uppercase tracking-wider">
+                Archivos Públicos
+            </button>
+        </div>
+
+        <div class="p-6 space-y-8">
+            <!-- Controls Section -->
+            <div class="bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Código de Reemplazo (XXXX):</label>
+                        <input type="text" id="replacementInput" placeholder="Ejemplo: 4744" 
+                            class="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all text-lg font-mono">
+                    </div>
+                    <div class="flex items-end space-x-2">
+                        <button onclick="applyRenaming()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition-all shadow-md active:scale-95">
+                            Aplicar
+                        </button>
+                        <button onclick="resetApp()" class="px-4 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-lg transition-all active:scale-95">
+                            Limpiar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- List Section -->
+            <div class="space-y-4">
+                <div class="flex justify-between items-center border-b pb-2">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800" id="fileCount">Archivos (0)</h2>
+                        <span id="modeLabel" class="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Modo: Privado</span>
+                    </div>
+                    <button onclick="copyAll()" class="text-indigo-600 hover:text-indigo-800 text-sm font-bold flex items-center gap-1 bg-indigo-50 px-3 py-1 rounded-full transition-colors">
+                        <span>Copiar lista completa</span>
+                    </button>
+                </div>
+
+                <div id="fileList" class="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                    <!-- Filenames dynamic list -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback UI -->
+    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-8 py-4 rounded-2xl shadow-2xl transform translate-y-32 transition-transform duration-300 ease-out flex items-center gap-3 z-50">
+        <div class="bg-green-500 rounded-full p-1">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+        </div>
+        <span id="toastMsg" class="font-medium uppercase tracking-wider text-sm">Copiado</span>
+    </div>
+
+    <script>
+        const data = {
+            private: [
+                "001_FORMATO_PROYECTO_REG_CXXXX_2026_S_F",
+                "002_CERTIFICADO_EXISTENCIA_REPRESENTACIÓN_LEGAL_REG_CXXXX_2026",
+                "003_CEDULA_CIUDADANIA_REG_CXXXX_2026_S_F",
+                "007_RUT_ENTIDAD_REG_CXXXX_2026",
+                "008_CERTIFICACION_BANCARIA_REG_CXXXX_2026",
+                "009_AVAL_SECRETARIO_DE_CULTURA_REG_CXXXX_2026",
+                "010_AVAL_EJECUCION_PROPUESTA_REG_CXXXX_2026",
+                "012_ANTECEDENTES_EP_REG_CXXXX_2026",
+                "013_ANTECEDENTES_RL_REG_CXXXX_2026",
+                "015_EVALUACION_CONTENIDO_REG_CXXXX_2026",
+                "016_ACTA_COMITE_TECNICO_37-2024",
+                "018_CDP_REG_CXXXX_2026",
+                "019_FORMATO_INFORMACION_FINANCIERA_REG_CXXXX_2026",
+                "021_RESOLUCION_N_1910_2025_11_200",
+                "023_CERTIFICADO_REGISTRO_PRESUPUESTAL",
+                "024_POLIZA_DOCUMENTOS_REG_CXXXX_2026",
+                "025_DOCUMENTOS_PAGO_REG_CXXXX_2026",
+                "025_01_CERTIFICADO_PARAFISCALES_REG_CXXXX_2026",
+                "030_CARTA_ACEPTACION_APOYO_REG_CXXXX_2026",
+                "031_ANEXO_AJUSTE_PROYECTO_REG_CXXXX_2026",
+                "032_CARTA_SOLICITUD_CAMBIO_CUENTA_REG_CXXXX_2026",
+                "033_ DOCUMENTOS_CAMBIO_RL_REG_CXXXX_2026",
+                "034_OFICIO_DESISTIMIENTO_REG_CXXXX_2026",
+                "035_CARTA_SOLICITUD_CAMBIO_ENCARGADO_PROYECTO_REG_CXXXX_2026",
+                "036_CARTA_SOLICITUD_CAMBIO_REPRESENTANTE_PROYECTO_REG_CXXXX_2026",
+                "095_ANEXO_NO_FACTURACION_ REG_CXXXX_2026"
+            ],
+            public: [
+                "001_FORMATO_PROYECTO_REG_CXXXX_2026",
+                "002_CERTIFICADO_EXISTENCIA_REPRESENTACIÓN_LEGAL_REG_CXXXX_2026",
+                "003_CEDULA_CIUDADANIA_REG_CXXXX_2026_S_F",
+                "005_ACTA_POSESION_REG_CXXXX_2026",
+                "007_RUT_ENTIDAD_REG_CXXXX_2026",
+                "008_CERTIFICACION_BANCARIA_REG_CXXXX_2026",
+                "009_AVAL_SECRETARIO_CULTURA_REG_CXXXX_2026",
+                "010_AVAL_EJECUCION_PROPUESTA_REG_CXXXX_2026",
+                "012_ANTECEDENTES_EP_REG_CXXXX_2026",
+                "013_ANTECEDENTES_RL_REG_CXXXX_2026",
+                "015_EVALUACION_CONTENIDO_REG_CXXXX_2026",
+                "016_ACTA_COMITE_TECNICO_36-2024",
+                "018_CDP_REG_CXXXX_2026",
+                "019_FORMATO_INFORMACION_FINANCIERA_REG_CXXXX_2026",
+                "020_MEMORANDO_REG_CXXXX_2026",
+                "021_RESOLUCION_N_1910_2025_11_200",
+                "023_CERTIFICADO_REGISTRO_PRESUPUESTAL",
+                "024_POLIZA_DOCUMENTOS_REG_CXXXX_2026",
+                "025_DOCUMENTOS_PAGO_REG_CXXXX_2026",
+                "025_01_CERTIFICADO_PARAFISCALES_REG_CXXXX_2026",
+                "030_CARTA_ACEPTACION_APOYO_REG_CXXXX_2026",
+                "031_ANEXO_AJUSTE_PROYECTO_REG_CXXXX_2026",
+                "032_CARTA_SOLICITUD_CAMBIO_CUENTA_REG_CXXXX_2026",
+                "033_ DOCUMENTOS_CAMBIO_RL_CXXXX_2026",
+                "034_OFICIO_DESISTIMIENTO_CXXXX_2026",
+                "035_CARTA_SOLICITUD_CAMBIO_ENCARGADO_PROYECTO_REG_CXXXX_2026",
+                "036_CARTA_SOLICITUD_CAMBIO_REPRESENTANTE_PROYECTO_REG_CXXXX_2026",
+                "037_CERTIFICADO_FUNCIONAMIENTO_BIBLIOTECA_REG_CXXXX_2026",
+                "095_ANEXO_CERTIFICADO_NO_FACTURACION_ REG_CXXXX_2026"
+            ]
+        };
+
+        let currentMode = 'private';
+        let currentReplacement = '';
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('btnPrivate').classList.toggle('tab-active', mode === 'private');
+            document.getElementById('btnPublic').classList.toggle('tab-active', mode === 'public');
+            document.getElementById('modeLabel').innerText = `Modo: ${mode === 'private' ? 'Privado' : 'Público'}`;
+            renderList();
+        }
+
+        function renderList() {
+            const listElement = document.getElementById('fileList');
+            const countElement = document.getElementById('fileCount');
+            const baseList = data[currentMode];
+            
+            listElement.innerHTML = '';
+            countElement.innerText = `Archivos (${baseList.length})`;
+
+            baseList.forEach((name, index) => {
+                const finalName = currentReplacement ? name.replace(/XXXX/g, currentReplacement) : name;
+                const isModified = currentReplacement !== '';
+
+                const div = document.createElement('div');
+                div.className = 'file-card group p-3 border-2 border-slate-100 rounded-xl flex justify-between items-center bg-white hover:border-indigo-200 transition-all shadow-sm';
+                
+                div.innerHTML = `
+                    <div class="flex flex-col">
+                        <span class="text-[10px] text-slate-400 uppercase font-bold mb-0.5 tracking-tight">Ítem ${index + 1}</span>
+                        <span class="text-sm font-mono break-all leading-tight ${isModified ? 'text-indigo-700 font-bold' : 'text-slate-500 font-medium'}">${finalName}</span>
+                    </div>
+                    <button onclick="copyText('${finalName}')" 
+                        class="ml-4 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white px-4 py-2 rounded-lg text-xs font-bold transition-all uppercase flex items-center gap-2 whitespace-nowrap active:scale-95 shadow-sm">
+                        <span>Copiar</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
+                    </button>
+                `;
+                listElement.appendChild(div);
+            });
+        }
+
+        function applyRenaming() {
+            currentReplacement = document.getElementById('replacementInput').value.trim();
+            renderList();
+        }
+
+        function resetApp() {
+            document.getElementById('replacementInput').value = '';
+            currentReplacement = '';
+            renderList();
+        }
+
+        function copyText(text) {
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            showToast('¡Nombre Copiado!');
+        }
+
+        function copyAll() {
+            const baseList = data[currentMode];
+            const processed = baseList.map(name => currentReplacement ? name.replace(/XXXX/g, currentReplacement) : name).join('\n');
+            const el = document.createElement('textarea');
+            el.value = processed;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            showToast('¡Lista Completa Copiada!');
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = message;
+            toast.classList.remove('translate-y-32');
+            setTimeout(() => {
+                toast.classList.add('translate-y-32');
+            }, 1800);
+        }
+
+        window.onload = renderList;
+    </script>
+</body>
+</html>
